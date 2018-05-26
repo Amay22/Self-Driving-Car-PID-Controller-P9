@@ -35,14 +35,14 @@ int main()
   PID pid;
   // TODO: Initialize the pid variable.
   // Steering gain coefficient.
-  double G = 1.7; 
-  // Proportional gain
-  double Kp = 0.05 * G; 
-  // Integral gain
-  double Ki = 0.0005 * G; 
-  // Derivative gain
-  double Kd = 0.45 * G; 
-  pid.Init(Kp, Ki, Kd);
+  // double G = 1.7; 
+  // // Proportional gain
+  // double Kp = 0.05 * G; 
+  // // Integral gain
+  // double Ki = 0.0005 * G; 
+  // // Derivative gain
+  // double Kd = 0.45 * G; 
+  pid.Init(0.12, 0.0, 3.25);
 
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -69,13 +69,22 @@ int main()
           */
           pid.UpdateError(cte);
           steer_value = -pid.TotalError();
+          if (steer_value > 1.0) {steer_value = 1.0;}
+          else if (steer_value < -1.0) {steer_value = -1.0;}
+
+          double throttle_value = 0.7;
+
+          // slow down for a curve
+          if (fabs(cte) > 0.6 && fabs(angle) > 7.5 && speed > 50.0) {
+            throttle_value = -1.0;
+          }
           
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = 0.3;
+          msgJson["throttle"] = throttle_value;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
